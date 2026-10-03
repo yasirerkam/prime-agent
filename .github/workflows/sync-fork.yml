@@ -1,0 +1,32 @@
+name: Sync fork
+
+on:
+  schedule:
+    # Daily at 04:00 UTC
+    - cron: '0 4 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          # Push is done via the default checkout token (actions/checkout
+          # persists credentials when this is unset/unspecified).
+      - name: Sync main with upstream
+        run: |
+          git remote add upstream https://github.com/PrimeIntellect-ai/prime-agent.git
+          git fetch upstream main
+          # Rebase instead of --ff-only: main carries one local commit
+          # (this workflow file), which upstream will never have, so a
+          # fast-forward is not possible. Rebases the workflow commit on
+          # top of upstream/main each run; a rebase failure means manual
+          # attention, which is the desired failure mode.
+          git rebase upstream/main
+          git push --force-with-lease origin main
